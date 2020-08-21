@@ -1,0 +1,9 @@
+dev:
+  portfolio_monitor:
+    cis:
+      pgp_key: test_key
+
+test:
+  portfolio_monitor:
+    cis:
+      pgp_key: test_key
