@@ -21,7 +21,7 @@ defmodule SecretConfig do
   @spec delete(key :: binary) :: ExAws.Operation.JSON.t()
   def delete(key) do
     key = "#{Application.get_env(:secret_config, :env)}/#{key}"
-    GenServer.cast(SecretConfig.Cache.Server, {:delete, key})
+    GenServer.call(SecretConfig.Cache.Server, {:delete, key})
   end
 
   @doc """
@@ -31,7 +31,7 @@ defmodule SecretConfig do
   @spec push(key :: binary, value :: binary) :: ExAws.Operation.JSON.t()
   def push(key, value) do
     key = "#{Application.get_env(:secret_config, :env)}/#{key}"
-    GenServer.cast(SecretConfig.Cache.Server, {:push, key, value})
+    GenServer.call(SecretConfig.Cache.Server, {:push, key, value})
   end
 
   @doc """

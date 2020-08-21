@@ -16,25 +16,25 @@ defmodule SecretConfig.Cache.Server do
   end
 
   def handle_call({:fetch, key, default}, _from, state) do
-    if Enum.member?([:dev, :test], Mix.env) do
+    if Enum.member?([:dev], Mix.env) do
       {:reply, local_ssm_map(key), state}
     else
       {:reply, Map.get(state, key, default), state}
     end
   end
 
-  def handle_cast({:delete, key}, _state) do
-    ExAws.SSM.delete_parameter(key)
+  def handle_call({:delete, key}, _from, state) do
+    IO.inspect ExAws.SSM.delete_parameter(key)
     |> ExAws.request!()
 
-    {:noreply, ssm_parameter_map()}
+    {:reply, key, ssm_parameter_map()}
   end
 
-  def handle_cast({:push, key, value}, _state) do
+  def handle_call({:push, key, value}, _from, state) do
     ExAws.SSM.put_parameter(key, :secure_string, value, overwrite: true)
     |> ExAws.request!()
 
-    {:noreply, ssm_parameter_map()}
+    {:reply, key, ssm_parameter_map()}
   end
 
   defp ssm_parameter_map() do
