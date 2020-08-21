@@ -46,17 +46,17 @@ test:
 
 ## Usage:
 
-Push to the parameter store, then triggers a refresh of the in-memory state (`no leading /`):
+Pushes to the parameter store, then triggers a refresh of the in-memory state (`no leading /`):
 ```elixir
-  SecretConfig.push(path/key_name/name, value)
+  SecretConfig.push("path/key_name/name", "value")
 ```
-Fetch from the local in-memory state. If you provide a default and the key is not found, it will return its default value:
+Fetches from the local in-memory state. If you provide a default and the key is not found, it will return its default value:
 ```elixir
-  SecretConfig.fetch(path/key_name/name, default)
+  SecretConfig.fetch("path/key_name/name", "default")
 ```
 Deletes from ssm parameter store and then triggers a refresh of the in-memory state
 ```elixir
-  SecretConfig.delete(path/key_name/name)
+  SecretConfig.delete("path/key_name/name")
 ```
 Triggers a refresh of the in-memory state by pulling the latest from the AWS Parameter Store
 ```elixir

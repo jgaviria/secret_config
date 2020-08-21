@@ -3,7 +3,6 @@ defmodule SecretConfigTest do
   use ExUnit.Case, async: false
   doctest SecretConfig
 
-
   describe "#push" do
     setup do
       SecretConfig.push("path/to/parameter", "value123")
