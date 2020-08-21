@@ -44,7 +44,7 @@ test:
 ```
 
 
-##Usage:
+## Usage:
 
 Push a parameter to ssm parameter store, then triggers a refresh of the in-memory state:
 ```elixir
