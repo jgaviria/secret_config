@@ -4,18 +4,17 @@
 
 ## Installation
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `secret_config` to your list of dependencies in `mix.exs`:
+Upon starting the umbrella app, SecretConfig will read all the parameters under the configured path and will load them into memory. 
+
+Usage:
 
 ```elixir
-def deps do
-  [
-    {:secret_config, "~> 0.1.0"}
-  ]
-end
+  SecretConfig.push(key, value)
+  SecretConfig.fetch(key)
+  SecretConfig.delete(key)
+  SecretConfig.refresh()
 ```
 
 Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
 and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
 be found at [https://hexdocs.pm/secret_config](https://hexdocs.pm/secret_config).
-
