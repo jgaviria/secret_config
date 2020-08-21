@@ -24,11 +24,8 @@ defmodule SecretConfig.MixProject do
     [
       {:ex_aws, "~> 2.1"},
       {:ex_aws_s3, "~> 2.0"},
-      {:hackney, "~> 1.15"},
-      {:sweet_xml, "~> 0.6"},
-      {:httpoison, ">= 0.0.0"},
       {:ex_aws_ssm, "~> 2.0"},
-      {:poison, "~> 3.0"},
+      {:httpoison, ">= 0.0.0"},
       {:jason, "~> 1.0"},
       {:yaml_elixir, "~> 2.5"}
     ]
