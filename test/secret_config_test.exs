@@ -3,30 +3,48 @@ defmodule SecretConfigTest do
   use ExUnit.Case, async: false
   doctest SecretConfig
 
-  describe "#push" do
+  describe "#fetch" do
     setup do
-      SecretConfig.push("path/to/parameter", "value123")
+      SecretConfig.push("path/to/fetch", "value123")
       :ok
     end
 
     test "fetches value from ssm parameter store" do
-      assert "value123" == SecretConfig.fetch("path/to/parameter")
+      assert "value123" == SecretConfig.fetch("path/to/fetch")
     end
 
-    test "returns default value for non existent key" do
-      assert "default" == SecretConfig.fetch("non_existing/parameter", "default")
+    test "returns default value for a non existent key" do
+      assert "default" == SecretConfig.fetch("non_existing/fetch", "default")
     end
   end
 
   describe "#delete" do
     setup do
-      SecretConfig.push("path/to/parameter/delete", "value123")
+      SecretConfig.push("path/to/delete", "value123")
       :ok
     end
 
     test "deletes value from ssm parameter store" do
-      assert "/test/portfolio_monitor/path/to/parameter/delete" == SecretConfig.delete("path/to/parameter/delete")
-      assert [], SecretConfig.fetch("path/to/parameter/delete")
+      assert "/test/portfolio_monitor/path/to/delete" == SecretConfig.delete("path/to/delete")
+      assert [], SecretConfig.fetch("path/to/delete")
+    end
+  end
+
+  describe "#push" do
+    test "pushes to ssm parameter store" do
+      assert "/test/portfolio_monitor/path/to/push" == SecretConfig.push("path/to/push", "value123")
+    end
+  end
+
+  describe "#refresh" do
+    setup do
+      SecretConfig.push("path/to/refresh", "value123")
+      :ok
+    end
+    test "pushes to ssm parameter store" do
+      gen_state =  :sys.get_state(SecretConfig.Cache.Server)
+
+      assert Map.has_key?(gen_state, "/test/portfolio_monitor/path/to/refresh")
     end
   end
 end
