@@ -1,6 +1,6 @@
 # SecretConfig
 
-Upon starting your app SecretConfig will read all the parameters under the configured path and will load them into memory. The reasoning behind this is to limit the amount of API calls to the ssm parameter store but rather doing them against a local GenServer. Every action (push, delete, refresh) will first update aws ssm and then immediately update the GenServer state. 
+Upon starting your app SecretConfig will read all the parameters under the configured path and will load them into memory. The reasoning behind this is to limit the amount of API calls to the ssm parameter store but rather doing them against a local GenServer. Actions like push or delete will first update aws ssm and then immediately update the GenServer state. 
 
 ## Status
 Early prototype code, not for production use.
@@ -25,12 +25,29 @@ config :ex_aws, ssm: [
 ]
 ```
 
+ExAws requires valid AWS keys in order to work properly. ExAws by default does the equivalent of:
+
+```elixir
+config :ex_aws,
+  access_key_id: [{:system, "AWS_ACCESS_KEY_ID"}, :instance_role],
+  secret_access_key: [{:system, "AWS_SECRET_ACCESS_KEY"}, :instance_role]
+```
+The above means it will try to resolve credentials in order:
+
+1. It kooks for the AWS standard AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables
+Resolve credentials with IAM
+
+2. Resolves credentials with IAM, if running inside ECS and a task role has been assigned it will use it
+Otherwise it will fall back to the instance role
+
+See https://github.com/ex-aws/ex_aws and https://github.com/hellogustav/ex_aws_ssm for detailed config docs. 
+
 Prepend your env and app_name:
 ```elixir
 config :secret_config, env: "/#{Mix.env}/app_name"
 ```
 
-SecretConfig supports dev and test environments. It will bypass the aws ssm call and read from a yaml file. It is important this file is created as follows `lib/fixtures/ssm_parameters.yml`. Also the env/app_name must match the above config (env/app_name)
+SecretConfig supports dev environment. It will bypass the aws ssm call and read from a yaml file. It is important this file is created as follows `lib/fixtures/ssm_parameters.yml`. Also the env/app_name must match the above config (env/app_name):
 ```elixir
 dev:
   app_name:
