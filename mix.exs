@@ -35,7 +35,7 @@ defmodule SecretConfig.MixProject do
   defp package do
     [
       description:
-        "EX_AWS_SSM wrapper that handles CRUD operations to interact with AWS SSM Parameter Store",
+        "SSM client which handles CRUD operations to interact with AWS SSM Parameter Store",
       files: ["priv", "lib", "config", "mix.exs", "README*"],
       maintainers: ["Juan Gaviria"],
       licenses: ["MIT"],
