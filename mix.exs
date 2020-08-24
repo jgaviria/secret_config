@@ -28,7 +28,8 @@ defmodule SecretConfig.MixProject do
       {:ex_aws_ssm, "~> 2.0"},
       {:httpoison, ">= 0.0.0"},
       {:jason, "~> 1.0"},
-      {:yaml_elixir, "~> 2.5"}
+      {:yaml_elixir, "~> 2.5"},
+      {:ex_doc, ">= 0.0.0", only: :dev, runtime: false}
     ]
   end
 
@@ -36,7 +37,6 @@ defmodule SecretConfig.MixProject do
     [
       description:
         "SSM client which handles CRUD operations to interact with AWS SSM Parameter Store",
-      files: ["priv", "lib", "config", "mix.exs", "README*"],
       maintainers: ["Juan Gaviria"],
       licenses: ["MIT"],
       links: %{github: "https://github.com/jgaviria/secret_config"}
