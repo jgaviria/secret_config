@@ -17,7 +17,7 @@ def deps do
 end
 ~~~
 ## Configuration
-You can set service specific configuration for both `ssm` and `ex_aws` (otherwise it defaults to `us-east-1`)
+You can set service specific configuration for both `ex_aws_ssm` and `ex_aws` (otherwise it defaults to `us-east-1`)
 
 ```elixir
 config :ex_aws, ssm: [
