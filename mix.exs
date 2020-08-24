@@ -7,6 +7,7 @@ defmodule SecretConfig.MixProject do
       version: "0.0.1",
       elixir: "~> 1.9",
       start_permanent: Mix.env() == :prod,
+      package: package(),
       deps: deps()
     ]
   end
@@ -30,4 +31,16 @@ defmodule SecretConfig.MixProject do
       {:yaml_elixir, "~> 2.5"}
     ]
   end
+
+  defp package do
+    [
+      description:
+        "EX_AWS_SSM wrapper that handles CRUD operations to interact with AWS SSM Parameter Store",
+      files: ["priv", "lib", "config", "mix.exs", "README*"],
+      maintainers: ["Juan Gaviria"],
+      licenses: ["MIT"],
+      links: %{github: "https://github.com/jgaviria/secret_config"}
+    ]
+  end
+
 end
