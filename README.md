@@ -35,7 +35,6 @@ config :ex_aws,
 The above means it will try to resolve credentials in order:
 
 1. It kooks for the AWS standard AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables
-Resolve credentials with IAM
 
 2. Resolves credentials with IAM, if running inside ECS and a task role has been assigned it will use it
 Otherwise it will fall back to the instance role
