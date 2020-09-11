@@ -25,14 +25,14 @@ defmodule SecretConfigTest do
     end
 
     test "deletes value from ssm parameter store" do
-      assert "/test/portfolio_monitor/path/to/delete" == SecretConfig.delete("path/to/delete")
+      assert "/test/app_name/path/to/delete" == SecretConfig.delete("path/to/delete")
       assert [], SecretConfig.fetch("path/to/delete")
     end
   end
 
   describe "#push" do
     test "pushes to ssm parameter store" do
-      assert "/test/portfolio_monitor/path/to/push" == SecretConfig.push("path/to/push", "value123")
+      assert "/test/app_name/path/to/push" == SecretConfig.push("path/to/push", "value123")
     end
   end
 
@@ -44,7 +44,7 @@ defmodule SecretConfigTest do
     test "pushes to ssm parameter store" do
       gen_state =  :sys.get_state(SecretConfig.Cache.Server)
 
-      assert Map.has_key?(gen_state, "/test/portfolio_monitor/path/to/refresh")
+      assert Map.has_key?(gen_state, "/test/app_name/path/to/refresh")
     end
   end
 end

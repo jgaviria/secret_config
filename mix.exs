@@ -4,7 +4,7 @@ defmodule SecretConfig.MixProject do
   def project do
     [
       app: :secret_config,
-      version: "0.0.3",
+      version: "0.0.4",
       elixir: "~> 1.9",
       start_permanent: Mix.env() == :prod,
       package: package(),

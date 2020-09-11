@@ -10,7 +10,11 @@ defmodule SecretConfig.Cache.Server do
   end
 
   def init(opts) do
-    GenServer.cast(SecretConfig.Cache.Server, {:refresh})
+    if Enum.member?([:dev], @mix_env) do
+      {}
+    else
+      GenServer.cast(SecretConfig.Cache.Server, {:refresh})
+    end
     {:ok, opts}
   end
 
@@ -26,14 +30,14 @@ defmodule SecretConfig.Cache.Server do
     end
   end
 
-  def handle_call({:delete, key}, _from, state) do
+  def handle_call({:delete, key}, _from, _state) do
     IO.inspect ExAws.SSM.delete_parameter(key)
     |> ExAws.request!()
 
     {:reply, key, ssm_parameter_map()}
   end
 
-  def handle_call({:push, key, value}, _from, state) do
+  def handle_call({:push, key, value}, _from, _state) do
     ExAws.SSM.put_parameter(key, :secure_string, value, overwrite: true)
     |> ExAws.request!()
 
@@ -51,8 +55,6 @@ defmodule SecretConfig.Cache.Server do
   end
 
   defp local_ssm_map(path) do
-    env = Mix.env()
-          |> Atom.to_string()
     local_ssm = Path.join(File.cwd!(), "lib/fixtures/ssm_parameters.yml")
 
     with {:ok, parameters} <- YamlElixir.read_from_file(local_ssm) do
