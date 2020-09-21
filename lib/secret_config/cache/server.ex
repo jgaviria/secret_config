@@ -45,8 +45,8 @@ defmodule SecretConfig.Cache.Server do
   end
 
   defp ssm_parameter_map() do
-    ssm_params = ExAws.SSM.get_parameters_by_path("/", recursive: true, with_decryption: true)
-                 |> ExAws.request!()
+    path = Application.get_env(:secret_config, :env) || "/"
+    ssm_params = ExAws.SSM.get_parameters_by_path(path, recursive: true, with_decryption: true) |> ExAws.request!()
 
     map = Enum.reduce ssm_params["Parameters"], %{}, fn (map, acc) ->
       Map.put(acc, map["Name"], map["Value"])
