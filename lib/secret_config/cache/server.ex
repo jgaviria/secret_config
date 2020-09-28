@@ -27,6 +27,10 @@ defmodule SecretConfig.Cache.Server do
     end
   end
 
+  def handle_call({:key?, key}, _from, state) do
+    {:reply, Map.has_key?(state, key), state}
+  end
+
   def handle_call({:delete, key}, _from, _state) do
     IO.inspect ExAws.SSM.delete_parameter(key)
     |> ExAws.request!()

@@ -15,6 +15,15 @@ defmodule SecretConfig do
   end
 
   @doc """
+  Checks for parameter to be present
+  """
+  @spec key?(key :: default :: binary) :: ExAws.Operation.JSON.t()
+  def key?(key, default \\ []) do
+    key = "#{Application.get_env(:secret_config, :env)}/#{key}"
+    GenServer.call(SecretConfig.Cache.Server, {:key?, key})
+  end
+
+  @doc """
   Deletes parameter from the AWS Parameter Store, then it triggers a refresh of the GenServer state
   """
 
@@ -43,5 +52,3 @@ defmodule SecretConfig do
   end
 end
 
-#TODO:
-# Maybe add return data types (only supports strings for now)
