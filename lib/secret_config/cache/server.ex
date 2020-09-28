@@ -2,15 +2,12 @@ defmodule SecretConfig.Cache.Server do
   use GenServer
   require Logger
 
-  # Don't use Mix.env in runtime code
-  @mix_env Mix.env()
-
   def start_link(opts) do
     GenServer.start_link(__MODULE__, %{}, opts)
   end
 
   def init(opts) do
-    if Enum.member?([:dev], @mix_env) do
+    if Application.get_env(:mix_env, :env) == :dev do
       {}
     else
       GenServer.cast(SecretConfig.Cache.Server, {:refresh})
@@ -23,7 +20,7 @@ defmodule SecretConfig.Cache.Server do
   end
 
   def handle_call({:fetch, key, default}, _from, state) do
-    if Enum.member?([:dev], @mix_env) do
+    if Application.get_env(:mix_env, :env) == :dev do
       {:reply, local_ssm_map(key), state}
     else
       {:reply, Map.get(state, key, default), state}
