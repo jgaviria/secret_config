@@ -7,7 +7,7 @@ defmodule SecretConfig.Cache.Server do
   end
 
   def init(opts) do
-    if Enum.member?([:test, :dev], Application.get_env(:mix_env, :env)) do
+    if Enum.member?([:test, :dev], Application.get_env(:secret_config, :mix_env)) do
       {}
     else
       GenServer.cast(SecretConfig.Cache.Server, {:refresh})
@@ -20,7 +20,7 @@ defmodule SecretConfig.Cache.Server do
   end
 
   def handle_call({:fetch, key, default}, _from, state) do
-    if Enum.member?([:test, :dev], Application.get_env(:mix_env, :env)) do
+    if Enum.member?([:test, :dev], Application.get_env(:secret_config, :mix_env)) do
       {:reply, local_ssm_map(key), state}
     else
       {:reply, Map.get(state, key, default), state}
