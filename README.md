@@ -46,7 +46,12 @@ Prepend your env and app_name:
 config :secret_config, env: "/#{Mix.env}/app_name"
 ```
 
-SecretConfig supports dev environment. It will bypass the aws ssm call and read from a yaml file. It is important this file is created as follows `lib/fixtures/ssm_parameters.yml`. Also the env/app_name must match the above config (env/app_name):
+Set up the path to the local yml file (for test and dev)
+```elixir
+config :secret_config, file: __DIR__ <> "/secret_config.yml"
+```
+
+SecretConfig supports dev and test environments. It will bypass the aws ssm call and read from a yaml file. It is important this file is created as follows `/secret_config.yml`. Also the env/app_name must match the above config (env/app_name):
 ```elixir
 dev:
   app_name:

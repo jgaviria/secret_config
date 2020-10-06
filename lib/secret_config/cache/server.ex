@@ -56,7 +56,7 @@ defmodule SecretConfig.Cache.Server do
   end
 
   defp local_ssm_map(path) do
-    local_ssm = Path.join(File.cwd!(), "lib/fixtures/ssm_parameters.yml")
+    local_ssm = Application.get_env(:secret_config, :file)
 
     with {:ok, parameters} <- YamlElixir.read_from_file(local_ssm) do
       key = String.split(path, "/", trim: true)
