@@ -8,7 +8,7 @@ defmodule SecretConfig.Cache.Server do
 
   def init(opts) do
     if Enum.member?([:test, :dev], Application.get_env(:secret_config, :mix_env)) do
-      GenServer.cast(SecretConfig.Cache.Server, {:refresh})
+      {}
     else
       GenServer.cast(SecretConfig.Cache.Server, {:refresh})
     end
