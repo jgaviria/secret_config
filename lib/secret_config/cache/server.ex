@@ -31,9 +31,6 @@ defmodule SecretConfig.Cache.Server do
   end
 
   def handle_call({:delete, key}, _from, {:file, map}) do
-    ExAws.SSM.delete_parameter(key)
-    |> ExAws.request!()
-
     {:reply, key, {:file, Map.delete(map, key)}}
   end
 
@@ -45,9 +42,6 @@ defmodule SecretConfig.Cache.Server do
   end
 
   def handle_call({:push, key, value}, _from, {:file, map}) do
-    ExAws.SSM.put_parameter(key, :secure_string, value, overwrite: true)
-    |> ExAws.request!()
-
     {:reply, key, {:file, Map.put(map, key, value)}}
   end
 
