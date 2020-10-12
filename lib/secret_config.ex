@@ -8,8 +8,8 @@ defmodule SecretConfig do
   @doc """
   Gets parameter from GenServer (returns default value if present)
   """
-  @spec fetch(key :: default :: binary) :: ExAws.Operation.JSON.t()
-  def fetch(key, default \\ []) do
+  @spec fetch(key :: binary, default :: binary | nil) :: ExAws.Operation.JSON.t()
+  def fetch(key, default \\ nil) do
     key = "#{Application.get_env(:secret_config, :env)}/#{key}"
     GenServer.call(SecretConfig.Cache.Server, {:fetch, key, default})
   end
@@ -17,8 +17,8 @@ defmodule SecretConfig do
   @doc """
   Checks for parameter to be present
   """
-  @spec key?(key :: default :: binary) :: ExAws.Operation.JSON.t()
-  def key?(key, default \\ []) do
+  @spec key?(key :: binary) :: ExAws.Operation.JSON.t()
+  def key?(key) do
     key = "#{Application.get_env(:secret_config, :env)}/#{key}"
     GenServer.call(SecretConfig.Cache.Server, {:key?, key})
   end
@@ -26,7 +26,6 @@ defmodule SecretConfig do
   @doc """
   Deletes parameter from the AWS Parameter Store, then it triggers a refresh of the GenServer state
   """
-
   @spec delete(key :: binary) :: ExAws.Operation.JSON.t()
   def delete(key) do
     key = "#{Application.get_env(:secret_config, :env)}/#{key}"
@@ -51,4 +50,3 @@ defmodule SecretConfig do
     GenServer.cast(SecretConfig.Cache.Server, {:refresh})
   end
 end
-
