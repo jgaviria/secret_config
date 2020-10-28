@@ -26,7 +26,6 @@ defmodule SecretConfigTest do
 
     test "deletes value from ssm parameter store" do
       assert "/test/app_name/path/to/delete" == SecretConfig.delete("path/to/delete")
-      assert [], SecretConfig.fetch("path/to/delete")
     end
   end
 
@@ -42,7 +41,7 @@ defmodule SecretConfigTest do
       :ok
     end
     test "pushes to ssm parameter store" do
-      gen_state =  :sys.get_state(SecretConfig.Cache.Server)
+      {:file, gen_state} =  :sys.get_state(SecretConfig.Cache.Server)
 
       assert Map.has_key?(gen_state, "/test/app_name/path/to/refresh")
     end

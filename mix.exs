@@ -29,6 +29,7 @@ defmodule SecretConfig.MixProject do
       {:httpoison, ">= 0.0.0"},
       {:jason, "~> 1.0"},
       {:yaml_elixir, "~> 2.5"},
+      {:configparser_ex, "~> 4.0"},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false}
     ]
   end
