@@ -18,6 +18,23 @@ defmodule SecretConfigTest do
     end
   end
 
+  describe "#fetch!" do
+    setup do
+      SecretConfig.push("path/to/fetch", "value123")
+      :ok
+    end
+
+    test "fetches value from ssm parameter store" do
+      assert "value123" == SecretConfig.fetch!("path/to/fetch")
+    end
+
+    test "raises error for a non existent key" do
+      assert_raise RuntimeError, fn ->
+        SecretConfig.fetch!("non_existing/fetch")
+      end
+    end
+  end
+
   describe "#delete" do
     setup do
       SecretConfig.push("path/to/delete", "value123")
@@ -40,11 +57,11 @@ defmodule SecretConfigTest do
       SecretConfig.push("path/to/refresh", "value123")
       :ok
     end
+
     test "pushes to ssm parameter store" do
-      {:file, gen_state} =  :sys.get_state(SecretConfig.Cache.Server)
+      {:file, gen_state} = :sys.get_state(SecretConfig.Cache.Server)
 
       assert Map.has_key?(gen_state, "/test/app_name/path/to/refresh")
     end
   end
 end
-
