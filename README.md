@@ -75,6 +75,10 @@ Fetches from the local in-memory state. If you provide a default and the key is 
 ```elixir
   SecretConfig.fetch("path/key_name/name", "default")
 ```
+Fetches from the local in-memory state. Raises a runtime error if the key doesn't exist:
+```elixir
+  SecretConfig.fetch!("path/key_name/non_existing_name")
+```
 Deletes from ssm parameter store and then triggers a refresh of the in-memory state
 ```elixir
   SecretConfig.delete("path/key_name/name")

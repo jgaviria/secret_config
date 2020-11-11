@@ -15,6 +15,19 @@ defmodule SecretConfig do
   end
 
   @doc """
+  Gets parameter from GenServer (raise error if the value is not present)
+  """
+  @spec fetch!(key :: binary) :: ExAws.Operation.JSON.t()
+  def fetch!(key) do
+    key = "#{Application.get_env(:secret_config, :env)}/#{key}"
+
+    case GenServer.call(SecretConfig.Cache.Server, {:fetch, key, :not_exist}) do
+      :not_exist -> raise "SecretConfig key does not exist: #{inspect(key)}"
+      val -> val
+    end
+  end
+
+  @doc """
   Checks for parameter to be present
   """
   @spec key?(key :: binary) :: ExAws.Operation.JSON.t()
@@ -45,7 +58,6 @@ defmodule SecretConfig do
   @doc """
   Triggers a refresh of the GenServer state by pulling the latest from the AWS Parameter Store
   """
-
   def refresh() do
     GenServer.cast(SecretConfig.Cache.Server, {:refresh})
   end
