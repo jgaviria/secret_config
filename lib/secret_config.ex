@@ -10,7 +10,6 @@ defmodule SecretConfig do
   """
   @spec fetch(key :: binary, default :: binary | nil) :: ExAws.Operation.JSON.t()
   def fetch(key, default \\ nil) do
-    key = "#{Application.get_env(:secret_config, :env)}/#{key}"
     GenServer.call(SecretConfig.Cache.Server, {:fetch, key, default})
   end
 
@@ -19,8 +18,6 @@ defmodule SecretConfig do
   """
   @spec fetch!(key :: binary) :: ExAws.Operation.JSON.t()
   def fetch!(key) do
-    key = "#{Application.get_env(:secret_config, :env)}/#{key}"
-
     case GenServer.call(SecretConfig.Cache.Server, {:fetch, key, :not_exist}) do
       :not_exist -> raise "SecretConfig key does not exist: #{inspect(key)}"
       val -> val
@@ -32,7 +29,6 @@ defmodule SecretConfig do
   """
   @spec key?(key :: binary) :: ExAws.Operation.JSON.t()
   def key?(key) do
-    key = "#{Application.get_env(:secret_config, :env)}/#{key}"
     GenServer.call(SecretConfig.Cache.Server, {:key?, key})
   end
 
@@ -41,7 +37,6 @@ defmodule SecretConfig do
   """
   @spec delete(key :: binary) :: ExAws.Operation.JSON.t()
   def delete(key) do
-    key = "#{Application.get_env(:secret_config, :env)}/#{key}"
     GenServer.call(SecretConfig.Cache.Server, {:delete, key})
   end
 
@@ -51,7 +46,6 @@ defmodule SecretConfig do
 
   @spec push(key :: binary, value :: binary) :: ExAws.Operation.JSON.t()
   def push(key, value) do
-    key = "#{Application.get_env(:secret_config, :env)}/#{key}"
     GenServer.call(SecretConfig.Cache.Server, {:push, key, value})
   end
 

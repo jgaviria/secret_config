@@ -8,48 +8,51 @@ defmodule SecretConfig.Cache.Server do
   end
 
   def init(_opts) do
-    {:ok, init_state()}
+    prefix = Application.get_env(:secret_config, :env)
+    {:ok, init_state(prefix)}
   end
 
-  def handle_cast({:refresh}, _state) do
-    {:noreply, init_state()}
+  def handle_cast({:refresh}, {_file_or_ssm, prefix, _map}) do
+    {:noreply, init_state(prefix)}
   end
 
-  def handle_call({:fetch, key, default}, _from, state = {_file_or_ssm, map}) do
-    {:reply, Map.get(map, key, default), state}
+  def handle_call({:fetch, key, default}, _from, state = {_file_or_ssm, prefix, map}) do
+    {:reply, Map.get(map, full_key(prefix, key), default), state}
   end
 
-  def handle_call({:key?, key}, _from, state = {_file_or_ssm, map}) do
-    {:reply, Map.has_key?(map, key), state}
+  def handle_call({:key?, key}, _from, state = {_file_or_ssm, prefix, map}) do
+    {:reply, Map.has_key?(map, full_key(prefix, key)), state}
   end
 
-  def handle_call({:delete, key}, _from, {:ssm, _map}) do
-    ExAws.SSM.delete_parameter(key)
+  def handle_call({:delete, key}, _from, {:ssm, prefix, _map}) do
+    full_key(prefix, key)
+    |> ExAws.SSM.delete_parameter()
     |> ExAws.request!()
 
-    {:reply, key, init_state()}
+    {:reply, key, init_state(prefix)}
   end
 
-  def handle_call({:delete, key}, _from, {:file, map}) do
-    {:reply, key, {:file, Map.delete(map, key)}}
+  def handle_call({:delete, key}, _from, {:file, prefix, map}) do
+    {:reply, key, {:file, prefix, Map.delete(map, full_key(prefix, key))}}
   end
 
-  def handle_call({:push, key, value}, _from, {:ssm, _map}) do
-    ExAws.SSM.put_parameter(key, :secure_string, value, overwrite: true)
+  def handle_call({:push, key, value}, _from, {:ssm, prefix, _map}) do
+    full_key(prefix, key)
+    |> ExAws.SSM.put_parameter(:secure_string, value, overwrite: true)
     |> ExAws.request!()
 
-    {:reply, key, init_state()}
+    {:reply, key, init_state(prefix)}
   end
 
-  def handle_call({:push, key, value}, _from, {:file, map}) do
-    {:reply, key, {:file, Map.put(map, key, value)}}
+  def handle_call({:push, key, value}, _from, {:file, prefix, map}) do
+    {:reply, key, {:file, prefix, Map.put(map, full_key(prefix, key), value)}}
   end
 
-  defp init_state() do
+  defp init_state(prefix) do
     if local_ssm_file = Application.get_env(:secret_config, :file) do
-      {:file, local_ssm_map(local_ssm_file)}
+      {:file, prefix, local_ssm_map(local_ssm_file)}
     else
-      {:ssm, ssm_parameter_map(%{}, nil, true)}
+      {:ssm, prefix, ssm_parameter_map(%{}, nil, true)}
     end
   end
 
@@ -103,4 +106,9 @@ defmodule SecretConfig.Cache.Server do
   defp add_to_path_map({key, value}, {prefix, path_map}) do
     {prefix, Map.put(path_map, prefix <> "/" <> key, to_string(value))}
   end
+
+  defp full_key(prefix, key) do
+    key = "#{prefix}/#{key}"
+  end
+
 end
