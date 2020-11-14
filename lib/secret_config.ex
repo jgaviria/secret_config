@@ -9,6 +9,7 @@ defmodule SecretConfig do
   Sets the env explicitly as this configuration item may not be able to be set
   inside a releases.exs or runtime.exs if you perform ensure_all_started(:secret_config)
   """
+  @spec set_env(env :: binary) :: none()
   def set_env(env) do
     GenServer.cast(SecretConfig.Cache.Server, {:set_env, env})
   end
@@ -60,7 +61,24 @@ defmodule SecretConfig do
   @doc """
   Triggers a refresh of the GenServer state by pulling the latest from the AWS Parameter Store
   """
+  @spec refresh() :: none()
   def refresh() do
     GenServer.cast(SecretConfig.Cache.Server, {:refresh})
+  end
+
+  @doc """
+  Convert a yaml to a map.  Useful in a config file for applications that use Docker
+  since your local file may no longer be there.
+  """
+  @spec file_to_map(String.t()) :: map()
+  def file_to_map(file) do
+    if String.ends_with?(file, ".eex") do
+      bindings = Application.get_env(:secret_config, :file_bindings) || []
+
+      EEx.eval_file(file, bindings)
+      |> YamlElixir.read_from_string!()
+    else
+      YamlElixir.read_from_file!(file)
+    end
   end
 end
