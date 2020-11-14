@@ -51,6 +51,11 @@ Set up the path to the local yml file (for test and dev)
 config :secret_config, file: __DIR__ <> "/secret_config.yml"
 ```
 
+If using Docker, you may want to avoid local files so you can use yaml_str instead of file
+```elixir
+config :secret_config, yaml_str: File.read!(__DIR__ <> "/secret_config.yml")
+```
+
 SecretConfig supports dev and test environments. It will bypass the aws ssm call and read from a yaml file. It is important this file is created as follows `/secret_config.yml`. Also the env/app_name must match the above config (env/app_name):
 ```elixir
 dev:

@@ -56,8 +56,8 @@ defmodule SecretConfig.Cache.Server do
     cond do
       yaml_str = Application.get_env(:secret_config, :yaml_str) ->
         {:local, env, yaml_str_to_map(yaml_str)}
-      yaml_file = Application.get_env(:secret_config, :yaml_file) ->
-        yaml_str = File.read!(yaml_file)
+      file = Application.get_env(:secret_config, :file) ->
+        yaml_str = File.read!(file)
         {:local, env, yaml_str_to_map(yaml_str)}
       true ->
         {:ssm, env, ssm_parameter_map(%{}, nil, true)}
