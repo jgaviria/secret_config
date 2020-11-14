@@ -65,20 +65,4 @@ defmodule SecretConfig do
   def refresh() do
     GenServer.cast(SecretConfig.Cache.Server, {:refresh})
   end
-
-  @doc """
-  Convert a yaml to a map.  Useful in a config file for applications that use Docker
-  since your local file may no longer be there.
-  """
-  @spec file_to_map(String.t()) :: map()
-  def file_to_map(file) do
-    if String.ends_with?(file, ".eex") do
-      bindings = Application.get_env(:secret_config, :file_bindings) || []
-
-      EEx.eval_file(file, bindings)
-      |> YamlElixir.read_from_string!()
-    else
-      YamlElixir.read_from_file!(file)
-    end
-  end
 end
