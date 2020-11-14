@@ -18,7 +18,7 @@ defmodule SecretConfig do
   Gets parameter from GenServer (returns default value if present)
   """
   @spec fetch(key :: binary, default :: binary | nil) :: ExAws.Operation.JSON.t()
-  def fetch(key, default \\ nil) do
+  def fetch(key, default) do
     GenServer.call(SecretConfig.Cache.Server, {:fetch, key, default})
   end
 
