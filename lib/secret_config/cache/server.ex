@@ -36,8 +36,8 @@ defmodule SecretConfig.Cache.Server do
     {:reply, key, init_state(env)}
   end
 
-  def handle_call({:delete, key}, _from, {:file, env, map}) do
-    {:reply, key, {:file, env, Map.delete(map, full_key(env, key))}}
+  def handle_call({:delete, key}, _from, {:local, env, map}) do
+    {:reply, key, {:local, env, Map.delete(map, full_key(env, key))}}
   end
 
   def handle_call({:push, key, value}, _from, {:ssm, env, _map}) do
@@ -48,15 +48,18 @@ defmodule SecretConfig.Cache.Server do
     {:reply, key, init_state(env)}
   end
 
-  def handle_call({:push, key, value}, _from, {:file, env, map}) do
-    {:reply, key, {:file, env, Map.put(map, full_key(env, key), value)}}
+  def handle_call({:push, key, value}, _from, {:local, env, map}) do
+    {:reply, key, {:local, env, Map.put(map, full_key(env, key), value)}}
   end
 
   defp init_state(env) do
-    if local_ssm_file = Application.get_env(:secret_config, :file) do
-      {:file, env, local_ssm_map(local_ssm_file)}
-    else
-      {:ssm, env, ssm_parameter_map(%{}, nil, true)}
+    cond do
+      map = Application.get_env(:secret_config, :map) ->
+        {:local, env, local_ssm_map(map)}
+      file = Application.get_env(:secret_config, :file) ->
+        {:local, env, local_ssm_map(SecretConfig.file_to_map(file))}
+      true ->
+        {:ssm, env, ssm_parameter_map(%{}, nil, true)}
     end
   end
 
@@ -85,16 +88,8 @@ defmodule SecretConfig.Cache.Server do
     ssm_parameter_map(map, next_token, false)
   end
 
-  defp local_ssm_map(local_ssm_file) do
-    if String.ends_with?(local_ssm_file, ".eex") do
-      bindings = Application.get_env(:secret_config, :file_bindings) || []
-
-      EEx.eval_file(local_ssm_file, bindings)
-      |> YamlElixir.read_from_string!()
-    else
-      YamlElixir.read_from_file!(local_ssm_file)
-    end
-    |> pathize_map("", %{})
+  defp local_ssm_map(map) do
+    pathize_map(map, "", %{})
   end
 
   defp pathize_map(yaml_map, prefix, path_map) do
@@ -114,5 +109,4 @@ defmodule SecretConfig.Cache.Server do
   defp full_key(env, key) do
     "#{env}/#{key}"
   end
-
 end
