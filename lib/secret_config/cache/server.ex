@@ -49,19 +49,44 @@ defmodule SecretConfig.Cache.Server do
     if local_ssm_file = Application.get_env(:secret_config, :file) do
       {:file, local_ssm_map(local_ssm_file)}
     else
-      {:ssm, ssm_parameter_map(%{}, nil, true)}
+      ssm_map = ssm_parameter_map(%{}, nil, true, Application.get_env(:secret_config, :env))
+                |> apply_imports
+
+      {:ssm, ssm_map}
     end
   end
 
-  defp ssm_parameter_map(map, nil, _first_run = false) do
+  def apply_imports(map) do
+    reduced_map =
+      Enum.reduce(
+        map,
+        %{},
+        fn {key, value}, acc ->
+          if Regex.match?(~r/__import__/, key) do
+            init_map = Map.delete(map, key)
+            imports_map = ssm_parameter_map(acc, nil, true, value)
+            Map.merge(init_map, imports_map, fn _k, v1, _v2 -> v1 end)
+          else
+            Map.put(acc, key, value)
+          end
+        end
+      )
+
+    if Map.has_key?(reduced_map, "/__import__") do
+      apply_imports(reduced_map)
+    else
+      reduced_map
+    end
+  end
+
+  defp ssm_parameter_map(map, nil, _first_run = false, _path) do
     map
   end
 
-  defp ssm_parameter_map(map, next_token, _first_run) do
-    path = Application.get_env(:secret_config, :env) || "/"
-
+  defp ssm_parameter_map(map, next_token, _first_run, path) do
     ssm_params =
-      ExAws.SSM.get_parameters_by_path(path,
+      ExAws.SSM.get_parameters_by_path(
+        path,
         recursive: true,
         with_decryption: true,
         next_token: next_token
@@ -71,11 +96,19 @@ defmodule SecretConfig.Cache.Server do
     next_token = ssm_params["NextToken"]
 
     map =
-      Enum.reduce(ssm_params["Parameters"], map, fn m, acc ->
-        Map.put(acc, m["Name"], m["Value"])
-      end)
+      Enum.reduce(
+        ssm_params["Parameters"],
+        map,
+        fn m, acc ->
+          key = m["Name"]
+          value = m["Value"]
+          stripped_key = String.split(key, path, trim: true)
+                        |> Enum.at(0)
+          Map.put(acc, stripped_key, value)
+        end
+      )
 
-    ssm_parameter_map(map, next_token, false)
+    ssm_parameter_map(map, next_token, false, path)
   end
 
   defp local_ssm_map(local_ssm_file) do
