@@ -8,78 +8,63 @@ defmodule SecretConfig.Cache.Server do
   end
 
   def init(_opts) do
-    {:ok, init_state()}
+    env = Application.get_env(:secret_config, :env)
+    {:ok, init_state(env)}
   end
 
-  def handle_cast({:refresh}, _state) do
-    {:noreply, init_state()}
+  def handle_cast({:set_env, env}, {file_or_ssm, _env, map}) do
+    {:noreply, {file_or_ssm, env, map}}
   end
 
-  def handle_call({:fetch, key, default}, _from, state = {_file_or_ssm, map}) do
-    {:reply, Map.get(map, key, default), state}
+  def handle_cast({:refresh}, {_file_or_ssm, env, _map}) do
+    {:noreply, init_state(env)}
   end
 
-  def handle_call({:key?, key}, _from, state = {_file_or_ssm, map}) do
-    {:reply, Map.has_key?(map, key), state}
+  def handle_call({:fetch, key, default}, _from, state = {_file_or_ssm, env, map}) do
+    {:reply, Map.get(map, full_key(env, key), default), state}
   end
 
-  def handle_call({:delete, key}, _from, {:ssm, _map}) do
-    ExAws.SSM.delete_parameter(key)
+  def handle_call({:key?, key}, _from, state = {_file_or_ssm, env, map}) do
+    {:reply, Map.has_key?(map, full_key(env, key)), state}
+  end
+
+  def handle_call({:delete, key}, _from, {:ssm, env, _map}) do
+    full_key(env, key)
+    |> ExAws.SSM.delete_parameter()
     |> ExAws.request!()
 
-    {:reply, key, init_state()}
+    {:reply, key, init_state(env)}
   end
 
-  def handle_call({:delete, key}, _from, {:file, map}) do
-    {:reply, key, {:file, Map.delete(map, key)}}
+  def handle_call({:delete, key}, _from, {:local, env, map}) do
+    {:reply, key, {:local, env, Map.delete(map, full_key(env, key))}}
   end
 
-  def handle_call({:push, key, value}, _from, {:ssm, _map}) do
-    ExAws.SSM.put_parameter(key, :secure_string, value, overwrite: true)
+  def handle_call({:push, key, value}, _from, {:ssm, env, _map}) do
+    full_key(env, key)
+    |> ExAws.SSM.put_parameter(:secure_string, value, overwrite: true)
     |> ExAws.request!()
 
-    {:reply, key, init_state()}
+    {:reply, key, init_state(env)}
   end
 
-  def handle_call({:push, key, value}, _from, {:file, map}) do
-    {:reply, key, {:file, Map.put(map, key, value)}}
+  def handle_call({:push, key, value}, _from, {:local, env, map}) do
+    {:reply, key, {:local, env, Map.put(map, full_key(env, key), value)}}
   end
 
-  defp init_state() do
-    if local_ssm_file = Application.get_env(:secret_config, :file) do
-      {:file, local_ssm_map(local_ssm_file)}
-    else
-      ssm_map = ssm_parameter_map(%{}, nil, true, Application.get_env(:secret_config, :env))
-                |> apply_imports
-
-      {:ssm, ssm_map}
+  defp init_state(env) do
+    cond do
+      yaml_str = Application.get_env(:secret_config, :yaml_str) ->
+        {:local, env, yaml_str_to_map(yaml_str)}
+      file = Application.get_env(:secret_config, :file) ->
+        yaml_str = File.read!(file)
+        {:local, env, yaml_str_to_map(yaml_str)}
+      true ->
+        {:ssm, env, ssm_parameter_map(%{}, nil, true)}
     end
   end
 
-  def apply_imports(map) do
-    reduced_map =
-      Enum.reduce(
-        map,
-        %{},
-        fn {key, value}, acc ->
-          if Regex.match?(~r/__import__/, key) do
-            init_map = Map.delete(map, key)
-            imports_map = ssm_parameter_map(acc, nil, true, value)
-            Map.merge(init_map, imports_map, fn _k, v1, _v2 -> v1 end)
-          else
-            Map.put(acc, key, value)
-          end
-        end
-      )
-
-    if Map.has_key?(reduced_map, "/__import__") do
-      apply_imports(reduced_map)
-    else
-      reduced_map
-    end
-  end
-
-  defp ssm_parameter_map(map, nil, _first_run = false, _path) do
+  defp ssm_parameter_map(map, nil, _first_run = false) do
     map
   end
 
@@ -111,18 +96,6 @@ defmodule SecretConfig.Cache.Server do
     ssm_parameter_map(map, next_token, false, path)
   end
 
-  defp local_ssm_map(local_ssm_file) do
-    if String.ends_with?(local_ssm_file, ".eex") do
-      bindings = Application.get_env(:secret_config, :file_bindings) || []
-
-      EEx.eval_file(local_ssm_file, bindings)
-      |> YamlElixir.read_from_string!()
-    else
-      YamlElixir.read_from_file!(local_ssm_file)
-    end
-    |> pathize_map("", %{})
-  end
-
   defp pathize_map(yaml_map, prefix, path_map) do
     {_prefix, path_map} = Enum.reduce(yaml_map, {prefix, path_map}, &add_to_path_map/2)
     path_map
@@ -136,4 +109,16 @@ defmodule SecretConfig.Cache.Server do
   defp add_to_path_map({key, value}, {prefix, path_map}) do
     {prefix, Map.put(path_map, prefix <> "/" <> key, to_string(value))}
   end
+
+  defp full_key(env, key) do
+    "#{env}/#{key}"
+  end
+
+  defp yaml_str_to_map(yaml_str) do
+    bindings = Application.get_env(:secret_config, :yaml_bindings) || []
+    EEx.eval_string(yaml_str, bindings)
+    |> YamlElixir.read_from_string!()
+    |> pathize_map("", %{})
+  end
+
 end

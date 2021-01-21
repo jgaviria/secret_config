@@ -6,10 +6,19 @@ defmodule SecretConfig do
   """
 
   @doc """
+  Sets the env explicitly as this configuration item may not be able to be set
+  inside a releases.exs or runtime.exs if you perform ensure_all_started(:secret_config)
+  """
+  @spec set_env(env :: binary) :: none()
+  def set_env(env) do
+    GenServer.cast(SecretConfig.Cache.Server, {:set_env, env})
+  end
+
+  @doc """
   Gets parameter from GenServer (returns default value if present)
   """
   @spec fetch(key :: binary, default :: binary | nil) :: ExAws.Operation.JSON.t()
-  def fetch(key, default \\ nil) do
+  def fetch(key, default) do
     GenServer.call(SecretConfig.Cache.Server, {:fetch, key, default})
   end
 
@@ -52,6 +61,7 @@ defmodule SecretConfig do
   @doc """
   Triggers a refresh of the GenServer state by pulling the latest from the AWS Parameter Store
   """
+  @spec refresh() :: none()
   def refresh() do
     GenServer.cast(SecretConfig.Cache.Server, {:refresh})
   end
