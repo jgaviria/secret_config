@@ -10,7 +10,7 @@ defmodule SecretConfigTest do
     end
 
     test "fetches value from ssm parameter store" do
-      assert "value123" == SecretConfig.fetch("path/to/fetch")
+      assert "value123" == SecretConfig.fetch("path/to/fetch", nil)
     end
 
     test "returns default value for a non existent key" do
@@ -42,13 +42,13 @@ defmodule SecretConfigTest do
     end
 
     test "deletes value from ssm parameter store" do
-      assert "/test/app_name/path/to/delete" == SecretConfig.delete("path/to/delete")
+      assert "path/to/delete" == SecretConfig.delete("path/to/delete")
     end
   end
 
   describe "#push" do
     test "pushes to ssm parameter store" do
-      assert "/test/app_name/path/to/push" == SecretConfig.push("path/to/push", "value123")
+      assert "path/to/push" == SecretConfig.push("path/to/push", "value123")
     end
   end
 
@@ -59,7 +59,7 @@ defmodule SecretConfigTest do
     end
 
     test "pushes to ssm parameter store" do
-      {:file, gen_state} = :sys.get_state(SecretConfig.Cache.Server)
+      {:local, _prefix, gen_state} = :sys.get_state(SecretConfig.Cache.Server)
 
       assert Map.has_key?(gen_state, "/test/app_name/path/to/refresh")
     end

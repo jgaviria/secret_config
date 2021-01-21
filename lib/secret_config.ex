@@ -6,11 +6,19 @@ defmodule SecretConfig do
   """
 
   @doc """
+  Sets the env explicitly as this configuration item may not be able to be set
+  inside a releases.exs or runtime.exs if you perform ensure_all_started(:secret_config)
+  """
+  @spec set_env(env :: binary) :: none()
+  def set_env(env) do
+    GenServer.cast(SecretConfig.Cache.Server, {:set_env, env})
+  end
+
+  @doc """
   Gets parameter from GenServer (returns default value if present)
   """
   @spec fetch(key :: binary, default :: binary | nil) :: ExAws.Operation.JSON.t()
-  def fetch(key, default \\ nil) do
-    key = "#{Application.get_env(:secret_config, :env)}/#{key}"
+  def fetch(key, default) do
     GenServer.call(SecretConfig.Cache.Server, {:fetch, key, default})
   end
 
@@ -19,8 +27,6 @@ defmodule SecretConfig do
   """
   @spec fetch!(key :: binary) :: ExAws.Operation.JSON.t()
   def fetch!(key) do
-    key = "#{Application.get_env(:secret_config, :env)}/#{key}"
-
     case GenServer.call(SecretConfig.Cache.Server, {:fetch, key, :not_exist}) do
       :not_exist -> raise "SecretConfig key does not exist: #{inspect(key)}"
       val -> val
@@ -32,7 +38,6 @@ defmodule SecretConfig do
   """
   @spec key?(key :: binary) :: ExAws.Operation.JSON.t()
   def key?(key) do
-    key = "#{Application.get_env(:secret_config, :env)}/#{key}"
     GenServer.call(SecretConfig.Cache.Server, {:key?, key})
   end
 
@@ -41,7 +46,6 @@ defmodule SecretConfig do
   """
   @spec delete(key :: binary) :: ExAws.Operation.JSON.t()
   def delete(key) do
-    key = "#{Application.get_env(:secret_config, :env)}/#{key}"
     GenServer.call(SecretConfig.Cache.Server, {:delete, key})
   end
 
@@ -51,13 +55,13 @@ defmodule SecretConfig do
 
   @spec push(key :: binary, value :: binary) :: ExAws.Operation.JSON.t()
   def push(key, value) do
-    key = "#{Application.get_env(:secret_config, :env)}/#{key}"
     GenServer.call(SecretConfig.Cache.Server, {:push, key, value})
   end
 
   @doc """
   Triggers a refresh of the GenServer state by pulling the latest from the AWS Parameter Store
   """
+  @spec refresh() :: none()
   def refresh() do
     GenServer.cast(SecretConfig.Cache.Server, {:refresh})
   end
