@@ -60,16 +60,40 @@ defmodule SecretConfig.Cache.Server do
         yaml_str = File.read!(file)
         {:local, env, yaml_str_to_map(yaml_str)}
       true ->
-        {:ssm, env, ssm_parameter_map(%{}, nil, true)}
+        path = Application.get_env(:secret_config, :env) || "/"
+        ssm_map =  ssm_parameter_map(%{}, nil, true, path)
+        |> apply_imports()
+
+        {:ssm, env, ssm_map}
     end
   end
 
-  defp ssm_parameter_map(map, nil, _first_run = false) do
+  def apply_imports(map) do
+    reduced_map =
+      Enum.reduce(
+        map,
+        %{},
+        fn {key, value}, acc ->
+          if Regex.match?(~r/__import__/, key) do
+            init_map = Map.delete(map, key)
+            imports_map = ssm_parameter_map(acc, nil, true, value)
+            map  = Map.merge(init_map, imports_map, fn _k, v1, _v2 -> v1 end)
+            apply_imports(map)
+          else
+            Map.put(acc, key, value)
+          end
+        end
+      )
+
+    reduced_map
+  end
+
+  defp ssm_parameter_map(map, nil, _first_run = false, _path) do
     map
   end
 
-  defp ssm_parameter_map(map, next_token, _first_run) do
-    path = Application.get_env(:secret_config, :env) || "/"
+  defp ssm_parameter_map(map, next_token, _first_run, path) do
+    app_prefix = Application.get_env(:secret_config, :env)
 
     ssm_params =
       ExAws.SSM.get_parameters_by_path(path,
@@ -82,11 +106,18 @@ defmodule SecretConfig.Cache.Server do
     next_token = ssm_params["NextToken"]
 
     map =
-      Enum.reduce(ssm_params["Parameters"], map, fn m, acc ->
-        Map.put(acc, m["Name"], m["Value"])
-      end)
+      Enum.reduce(
+        ssm_params["Parameters"],
+        map,
+        fn m, acc ->
+          key = m["Name"]
+          value = m["Value"]
+          prefixed_key = String.replace(key, path, app_prefix)
+          Map.put(acc, prefixed_key, value)
+        end
+      )
 
-    ssm_parameter_map(map, next_token, false)
+    ssm_parameter_map(map, next_token, false, path)
   end
 
   defp pathize_map(yaml_map, prefix, path_map) do
