@@ -92,6 +92,18 @@ Triggers a refresh of the in-memory state by pulling the latest from the AWS Par
 ```elixir
   SecretConfig.refresh()
 ```
+##Run Integration test against the AWS Parameter Store:
+
+
+This runs the integration test which are skipped by default. You must have AWS creds already loaded in the console where the test will be running:
+```elixir
+export AWS_ACCESS_KEY_ID="key"
+export AWS_SECRET_ACCESS_KEY="key"
+export BUCKET_NAME=bucket-name
+```
+```elixir
+  mix test --only ssm_test --seed 0
+```
 
 Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
 and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
