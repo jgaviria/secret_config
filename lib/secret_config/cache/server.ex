@@ -28,24 +28,24 @@ defmodule SecretConfig.Cache.Server do
     {:reply, Map.has_key?(map, full_key(env, key)), state}
   end
 
-  def handle_call({:delete, key}, _from, {:ssm, env, _map}) do
+  def handle_call({:delete, key}, _from, {:ssm, env, map}) do
     full_key(env, key)
     |> ExAws.SSM.delete_parameter()
     |> ExAws.request!()
 
-    {:reply, key, init_state(env)}
+    {:reply, key, {:ssm, env, Map.delete(map, full_key(env, key))}}
   end
 
   def handle_call({:delete, key}, _from, {:local, env, map}) do
     {:reply, key, {:local, env, Map.delete(map, full_key(env, key))}}
   end
 
-  def handle_call({:push, key, value}, _from, {:ssm, env, _map}) do
+  def handle_call({:push, key, value}, _from, {:ssm, env, map}) do
     full_key(env, key)
     |> ExAws.SSM.put_parameter(:secure_string, value, overwrite: true)
     |> ExAws.request!()
 
-    {:reply, key, init_state(env)}
+    {:reply, key, {:ssm, env, Map.put(map, full_key(env, key), value)}}
   end
 
   def handle_call({:push, key, value}, _from, {:local, env, map}) do
