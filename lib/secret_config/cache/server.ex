@@ -58,14 +58,58 @@ defmodule SecretConfig.Cache.Server do
         {:local, env, yaml_str_to_map(yaml_str)}
       file = Application.get_env(:secret_config, :file) ->
         yaml_str = File.read!(file)
-        {:local, env, yaml_str_to_map(yaml_str)}
+        local_map = yaml_str_to_map(yaml_str)
+                    |> apply_local_imports
+
+        {:local, env, local_map}
       true ->
         path = Application.get_env(:secret_config, :env) || "/"
-        ssm_map =  ssm_parameter_map(%{}, nil, true, path)
-        |> apply_imports()
+        ssm_map = ssm_parameter_map(%{}, nil, true, path)
+                  |> apply_imports()
 
         {:ssm, env, ssm_map}
     end
+  end
+
+  def apply_local_imports(map) do
+    reduced_map =
+      Enum.reduce(
+        map,
+        %{},
+        fn {key, value}, acc ->
+          if Regex.match?(~r/__import__/, key) do
+            init_map = Map.delete(map, key)
+            imports_map = fetch_local_imports(init_map, value)
+            map = Map.merge(init_map, imports_map, fn _k, v1, _v2 -> v1 end)
+            apply_local_imports(map)
+          else
+            Map.put(acc, key, value)
+          end
+        end
+      )
+
+    reduced_map
+  end
+
+  def fetch_local_imports(map, import_key) do
+    reduced_map =
+      Enum.reduce(
+        map,
+        %{},
+        fn {key, value}, acc ->
+          if Regex.match?(~r/#{import_key}/, key) do
+            str = String.split(key, "/", trim: true)
+            [_head | tail] = str
+            pathize_key = Enum.join(tail, "/")
+            modified_key = "/#{Mix.env}/#{pathize_key}"
+            Map.put(acc, modified_key, value)
+          else
+            acc
+          end
+        end
+      )
+
+    reduced_map
   end
 
   def apply_imports(map) do
@@ -77,7 +121,7 @@ defmodule SecretConfig.Cache.Server do
           if Regex.match?(~r/__import__/, key) do
             init_map = Map.delete(map, key)
             imports_map = ssm_parameter_map(acc, nil, true, value)
-            map  = Map.merge(init_map, imports_map, fn _k, v1, _v2 -> v1 end)
+            map = Map.merge(init_map, imports_map, fn _k, v1, _v2 -> v1 end)
             apply_imports(map)
           else
             Map.put(acc, key, value)
@@ -96,7 +140,8 @@ defmodule SecretConfig.Cache.Server do
     app_prefix = Application.get_env(:secret_config, :env)
 
     ssm_params =
-      ExAws.SSM.get_parameters_by_path(path,
+      ExAws.SSM.get_parameters_by_path(
+        path,
         recursive: true,
         with_decryption: true,
         next_token: next_token

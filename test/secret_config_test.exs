@@ -65,6 +65,20 @@ defmodule SecretConfigTest do
     end
   end
 
+  describe "#imports" do
+    test "imports shared configs respecting overrides" do
+      {:local, _prefix, gen_state} = :sys.get_state(SecretConfig.Cache.Server)
+
+      assert Map.has_key?(gen_state, "/test/app_name/symmetric_encryption/iv")
+      assert Map.has_key?(gen_state, "/test/app_name/symmetric_encryption/key")
+      assert Map.has_key?(gen_state, "/test/app_name/symmetric_encryption/version")
+
+      assert "global_iv" == SecretConfig.fetch!("symmetric_encryption/iv")
+      assert "global_key" == SecretConfig.fetch!("symmetric_encryption/key")
+      assert "override_version" == SecretConfig.fetch!("symmetric_encryption/version")
+    end
+  end
+
   # Only run when pointing to the ssm parameter store
   describe "ssm" do
     @tag :ssm_test
