@@ -79,7 +79,7 @@ defmodule SecretConfig.Cache.Server do
         fn {key, value}, acc ->
           if Regex.match?(~r/__import__/, key) do
             init_map = Map.delete(map, key)
-            imports_map = fetch_local_imports(init_map, value)
+            imports_map = fetch_local_imports(init_map, value, key)
             map = Map.merge(init_map, imports_map, fn _k, v1, _v2 -> v1 end)
             apply_local_imports(map)
           else
@@ -91,17 +91,22 @@ defmodule SecretConfig.Cache.Server do
     reduced_map
   end
 
-  def fetch_local_imports(map, import_key) do
+  def fetch_local_imports(map, import_key, parent_key) do
+    import_prefix = String.split(import_key, "/", trim: true)
+               |> Enum.at(1)
+    parent_prefix = String.split(parent_key, "/", trim: true)
+               |> Enum.at(1)
+
     reduced_map =
       Enum.reduce(
         map,
         %{},
         fn {key, value}, acc ->
           if Regex.match?(~r/#{import_key}/, key) do
-            str = String.split(key, "/", trim: true)
+            str = String.split(key, "/#{import_prefix}", trim: true)
             [_head | tail] = str
             pathize_key = Enum.join(tail, "/")
-            modified_key = "/#{Mix.env}/#{pathize_key}"
+            modified_key = "/#{Mix.env}/#{parent_prefix}#{pathize_key}"
             Map.put(acc, modified_key, value)
           else
             acc
