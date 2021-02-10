@@ -63,9 +63,8 @@ defmodule SecretConfig.Cache.Server do
 
         {:local, env, local_map}
       true ->
-        path = Application.get_env(:secret_config, :env) || "/"
-        ssm_map = ssm_parameter_map(%{}, nil, true, path)
-                  |> apply_imports()
+        ssm_map = ssm_parameter_map(%{}, nil, true, env, env)
+                  |> apply_imports(env)
 
         {:ssm, env, ssm_map}
     end
@@ -117,19 +116,19 @@ defmodule SecretConfig.Cache.Server do
     reduced_map
   end
 
-  def apply_imports(map) do
+  def apply_imports(map, app_prefix) do
     reduced_map =
       Enum.reduce(
         map,
         %{},
-        fn {key, value}, acc ->
+        fn {key, path}, acc ->
           if Regex.match?(~r/__import__/, key) do
             init_map = Map.delete(map, key)
-            imports_map = ssm_parameter_map(acc, nil, true, value)
+            imports_map = ssm_parameter_map(acc, nil, true, path, app_prefix)
             map = Map.merge(init_map, imports_map, fn _k, v1, _v2 -> v1 end)
-            apply_imports(map)
+            apply_imports(map, app_prefix)
           else
-            Map.put(acc, key, value)
+            Map.put(acc, key, path)
           end
         end
       )
@@ -137,13 +136,11 @@ defmodule SecretConfig.Cache.Server do
     reduced_map
   end
 
-  defp ssm_parameter_map(map, nil, _first_run = false, _path) do
+  defp ssm_parameter_map(map, nil, _first_run = false, _path, _app_prefix) do
     map
   end
 
-  defp ssm_parameter_map(map, next_token, _first_run, path) do
-    app_prefix = Application.get_env(:secret_config, :env)
-
+  defp ssm_parameter_map(map, next_token, _first_run, path, app_prefix) do
     ssm_params =
       ExAws.SSM.get_parameters_by_path(
         path,
@@ -167,7 +164,7 @@ defmodule SecretConfig.Cache.Server do
         end
       )
 
-    ssm_parameter_map(map, next_token, false, path)
+    ssm_parameter_map(map, next_token, false, path, app_prefix)
   end
 
   defp pathize_map(yaml_map, prefix, path_map) do
