@@ -99,7 +99,7 @@ Triggers a refresh of the in-memory state by pulling the latest from the AWS Par
 ```elixir
   SecretConfig.refresh()
 ```
-##Run Integration test against the AWS Parameter Store:
+## Run Integration test against the AWS Parameter Store:
 
 
 This runs the integration test which are skipped by default. You must have AWS creds already loaded in the console where the test will be running:
