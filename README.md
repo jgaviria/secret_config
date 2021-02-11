@@ -43,7 +43,14 @@ See https://github.com/ex-aws/ex_aws and https://github.com/hellogustav/ex_aws_s
 
 Prepend your env and app_name:
 ```elixir
-config :secret_config, env: "/#{Mix.env}/app_name"
+stack =
+  case config_env() do
+    :prod -> System.fetch_env!("STACK_NAME")
+    env -> env
+  end
+
+
+SecretConfig.set_env("/#{stack}/app_name")
 ```
 
 Set up the path to the local yml file (for test and dev)

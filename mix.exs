@@ -5,7 +5,7 @@ defmodule SecretConfig.MixProject do
     [
       app: :secret_config,
       version: "0.12.0",
-      elixir: "~> 1.9",
+      elixir: "~> 1.11.3",
       start_permanent: Mix.env() == :prod,
       package: package(),
       deps: deps()
