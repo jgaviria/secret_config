@@ -9,11 +9,19 @@ defmodule SecretConfig.Cache.Server do
 
   def init(_opts) do
     env = Application.get_env(:secret_config, :env)
-    {:ok, init_state(env)}
+    if env == nil do
+      {:ok, %{}}
+      else
+      {:ok, init_state(env)}
+    end
   end
 
   def handle_cast({:set_env, env}, {file_or_ssm, _env, map}) do
     {:noreply, {file_or_ssm, env, map}}
+  end
+
+  def handle_cast({:set_env, env}, %{}) do
+    {:noreply, init_state(env)}
   end
 
   def handle_cast({:refresh}, {_file_or_ssm, env, _map}) do
