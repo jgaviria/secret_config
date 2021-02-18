@@ -11,7 +11,7 @@ defmodule SecretConfig.Cache.Server do
     env = Application.get_env(:secret_config, :env)
     if env == nil do
       {:ok, %{}}
-      else
+    else
       {:ok, init_state(env)}
     end
   end
@@ -29,11 +29,11 @@ defmodule SecretConfig.Cache.Server do
   end
 
   def handle_call({:fetch, key, default}, _from, state = {_file_or_ssm, env, map}) do
-    {:reply, Map.get(map, full_key(env, key), default), state}
+    {:reply, Map.get(map, key, default), state}
   end
 
   def handle_call({:key?, key}, _from, state = {_file_or_ssm, env, map}) do
-    {:reply, Map.has_key?(map, full_key(env, key)), state}
+    {:reply, Map.has_key?(map, key), state}
   end
 
   def handle_call({:delete, key}, _from, {:ssm, env, map}) do
@@ -71,7 +71,7 @@ defmodule SecretConfig.Cache.Server do
 
         {:local, env, local_map}
       true ->
-        ssm_map = ssm_parameter_map(%{}, nil, true, env, env)
+        ssm_map = ssm_parameter_map(%{}, nil, true, env)
                   |> apply_imports(env)
 
         {:ssm, env, ssm_map}
@@ -100,9 +100,9 @@ defmodule SecretConfig.Cache.Server do
 
   def fetch_local_imports(map, import_key, parent_key) do
     import_prefix = String.split(import_key, "/", trim: true)
-               |> Enum.at(1)
+                    |> Enum.at(1)
     parent_prefix = String.split(parent_key, "/", trim: true)
-               |> Enum.at(1)
+                    |> Enum.at(1)
 
     reduced_map =
       Enum.reduce(
@@ -124,15 +124,30 @@ defmodule SecretConfig.Cache.Server do
     reduced_map
   end
 
-  def apply_imports(map, app_prefix) do
+  def apply_imports(init_map, app_prefix) do
     reduced_map =
       Enum.reduce(
-        map,
+        init_map,
         %{},
         fn {key, path}, acc ->
           if Regex.match?(~r/__import__/, key) do
-            init_map = Map.delete(map, key)
-            imports_map = ssm_parameter_map(acc, nil, true, path, app_prefix)
+            init_map = Map.delete(acc, key)
+            prefixed_key = String.replace(key, ["__import__", "/"], "")
+
+            imports_map =
+              Enum.reduce(
+                ssm_parameter_map(%{}, nil, true, path),
+                %{},
+                fn {key, value}, acc ->
+                  if prefixed_key == "" do
+                    Map.put(acc, key, value)
+                  else
+                    key = "#{prefixed_key}/#{key}"
+                    Map.put(acc, key, value)
+                  end
+                end
+              )
+
             map = Map.merge(init_map, imports_map, fn _k, v1, _v2 -> v1 end)
             apply_imports(map, app_prefix)
           else
@@ -144,11 +159,11 @@ defmodule SecretConfig.Cache.Server do
     reduced_map
   end
 
-  defp ssm_parameter_map(map, nil, _first_run = false, _path, _app_prefix) do
+  defp ssm_parameter_map(map, nil, _first_run = false, _path) do
     map
   end
 
-  defp ssm_parameter_map(map, next_token, _first_run, path, app_prefix) do
+  defp ssm_parameter_map(map, next_token, _first_run, path) do
     ssm_params =
       ExAws.SSM.get_parameters_by_path(
         path,
@@ -167,12 +182,12 @@ defmodule SecretConfig.Cache.Server do
         fn m, acc ->
           key = m["Name"]
           value = m["Value"]
-          prefixed_key = String.replace(key, path, app_prefix)
+          prefixed_key = String.replace(key, "#{path}/", "")
           Map.put(acc, prefixed_key, value)
         end
       )
 
-    ssm_parameter_map(map, next_token, false, path, app_prefix)
+    ssm_parameter_map(map, next_token, false, path)
   end
 
   defp pathize_map(yaml_map, prefix, path_map) do
