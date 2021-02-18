@@ -62,7 +62,7 @@ defmodule SecretConfigTest do
     test "pushes to ssm parameter store" do
       {:local, _prefix, gen_state} = :sys.get_state(SecretConfig.Cache.Server)
 
-      assert Map.has_key?(gen_state, "/test/app_name/path/to/refresh")
+      assert Map.has_key?(gen_state, "path/to/refresh")
     end
   end
 
@@ -74,13 +74,13 @@ defmodule SecretConfigTest do
 
       {:local, _prefix, gen_state} = :sys.get_state(SecretConfig.Cache.Server)
 
-      assert Map.has_key?(gen_state, "/test/other_application/symmetric_encryption/iv")
-      assert Map.has_key?(gen_state, "/test/other_application/symmetric_encryption/key")
-      assert Map.has_key?(gen_state, "/test/other_application/symmetric_encryption/version")
+      assert Map.has_key?(gen_state, "symmetric_encryption/iv")
+      assert Map.has_key?(gen_state, "symmetric_encryption/key")
+      assert Map.has_key?(gen_state, "symmetric_encryption/version")
 
       assert "global_iv" == SecretConfig.fetch!("symmetric_encryption/iv")
       assert "global_key" == SecretConfig.fetch!("symmetric_encryption/key")
-      assert "override_1" == SecretConfig.fetch!("symmetric_encryption/version")
+      assert "override_2" == SecretConfig.fetch!("symmetric_encryption/version")
     end
 
     test "pulls nested imports respecting overrides" do
@@ -90,9 +90,9 @@ defmodule SecretConfigTest do
 
       {:local, _prefix, gen_state} = :sys.get_state(SecretConfig.Cache.Server)
 
-      assert Map.has_key?(gen_state, "/test/other_other_application/symmetric_encryption/iv")
-      assert Map.has_key?(gen_state, "/test/other_other_application/symmetric_encryption/key")
-      assert Map.has_key?(gen_state, "/test/other_other_application/symmetric_encryption/version")
+      assert Map.has_key?(gen_state, "symmetric_encryption/iv")
+      assert Map.has_key?(gen_state, "symmetric_encryption/key")
+      assert Map.has_key?(gen_state, "symmetric_encryption/version")
 
       assert "global_iv" == SecretConfig.fetch!("symmetric_encryption/iv")
       assert "global_key" == SecretConfig.fetch!("symmetric_encryption/key")

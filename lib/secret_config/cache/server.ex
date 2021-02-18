@@ -45,7 +45,7 @@ defmodule SecretConfig.Cache.Server do
   end
 
   def handle_call({:delete, key}, _from, {:local, env, map}) do
-    {:reply, key, {:local, env, Map.delete(map, full_key(env, key))}}
+    {:reply, key, {:local, env, Map.delete(map, key)}}
   end
 
   def handle_call({:push, key, value}, _from, {:ssm, env, map}) do
@@ -57,7 +57,7 @@ defmodule SecretConfig.Cache.Server do
   end
 
   def handle_call({:push, key, value}, _from, {:local, env, map}) do
-    {:reply, key, {:local, env, Map.put(map, full_key(env, key), value)}}
+    {:reply, key, {:local, env, Map.put(map, key, value)}}
   end
 
   defp init_state(env) do
@@ -196,7 +196,7 @@ defmodule SecretConfig.Cache.Server do
   end
 
   defp add_to_path_map({key, inner_map = %{}}, {prefix, path_map}) do
-    path_map = pathize_map(inner_map, prefix <> "/" <> key, path_map)
+    path_map = pathize_map(inner_map, key, path_map)
     {prefix, path_map}
   end
 
