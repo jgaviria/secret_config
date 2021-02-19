@@ -35,6 +35,17 @@ defmodule SecretConfigTest do
     end
   end
 
+  describe "#delete" do
+    setup do
+      SecretConfig.push("path/to/delete", "value123")
+      :ok
+    end
+
+    test "deletes value from ssm parameter store" do
+      assert "path/to/delete" == SecretConfig.delete("path/to/delete")
+    end
+  end
+
   describe "#push" do
     test "pushes to ssm parameter store" do
       assert "path/to/push" == SecretConfig.push("path/to/push", "value123")
