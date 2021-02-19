@@ -35,17 +35,6 @@ defmodule SecretConfigTest do
     end
   end
 
-  describe "#delete" do
-    setup do
-      SecretConfig.push("path/to/delete", "value123")
-      :ok
-    end
-
-    test "deletes value from ssm parameter store" do
-      assert "path/to/delete" == SecretConfig.delete("path/to/delete")
-    end
-  end
-
   describe "#push" do
     test "pushes to ssm parameter store" do
       assert "path/to/push" == SecretConfig.push("path/to/push", "value123")
@@ -62,7 +51,7 @@ defmodule SecretConfigTest do
     test "pushes to ssm parameter store" do
       {:local, _prefix, gen_state} = :sys.get_state(SecretConfig.Cache.Server)
 
-      assert Map.has_key?(gen_state, "path/to/refresh")
+      assert Map.has_key?(gen_state, "/test/app_name/path/to/refresh")
     end
   end
 
@@ -72,27 +61,15 @@ defmodule SecretConfigTest do
       :timer.sleep(5000)
       GenServer.cast(SecretConfig.Cache.Server, {:refresh})
 
-      {:local, _prefix, gen_state} = :sys.get_state(SecretConfig.Cache.Server)
-
-      assert Map.has_key?(gen_state, "symmetric_encryption/iv")
-      assert Map.has_key?(gen_state, "symmetric_encryption/key")
-      assert Map.has_key?(gen_state, "symmetric_encryption/version")
-
       assert "global_iv" == SecretConfig.fetch!("symmetric_encryption/iv")
       assert "global_key" == SecretConfig.fetch!("symmetric_encryption/key")
-      assert "override_2" == SecretConfig.fetch!("symmetric_encryption/version")
+      assert "override_1" == SecretConfig.fetch!("symmetric_encryption/version")
     end
 
     test "pulls nested imports respecting overrides" do
       SecretConfig.set_env("/test/other_other_application")
       :timer.sleep(5000)
       GenServer.cast(SecretConfig.Cache.Server, {:refresh})
-
-      {:local, _prefix, gen_state} = :sys.get_state(SecretConfig.Cache.Server)
-
-      assert Map.has_key?(gen_state, "symmetric_encryption/iv")
-      assert Map.has_key?(gen_state, "symmetric_encryption/key")
-      assert Map.has_key?(gen_state, "symmetric_encryption/version")
 
       assert "global_iv" == SecretConfig.fetch!("symmetric_encryption/iv")
       assert "global_key" == SecretConfig.fetch!("symmetric_encryption/key")

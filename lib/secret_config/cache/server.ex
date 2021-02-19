@@ -28,26 +28,25 @@ defmodule SecretConfig.Cache.Server do
     {:noreply, init_state(env)}
   end
 
-  def handle_call({:fetch, key, default}, _from, state = {_file_or_ssm, env, map}) do
-    {:reply, Map.get(map, key, default), state}
+  # Handle calls from the local config
+  def handle_call({:push, key, value}, _from, {:local, env, map}) do
+    {:reply, key, {:local, env, Map.put(map, full_key(env, key), value)}}
   end
 
-  def handle_call({:key?, key}, _from, state = {_file_or_ssm, env, map}) do
-    {:reply, Map.has_key?(map, key), state}
+  def handle_call({:fetch, key, default}, _from, {:local, env, map}) do
+    {:reply, Map.get(map, full_key(env, key), default), {:local, env, map}}
   end
 
-  def handle_call({:delete, key}, _from, {:ssm, env, map}) do
-    full_key(env, key)
-    |> ExAws.SSM.delete_parameter()
-    |> ExAws.request!()
-
-    {:reply, key, {:ssm, env, Map.delete(map, full_key(env, key))}}
+  def handle_call({:key?, key}, _from, {:local, env, map}) do
+    {:reply, Map.has_key?(map, full_key(env, key)), {:local, env, map}}
   end
 
   def handle_call({:delete, key}, _from, {:local, env, map}) do
     {:reply, key, {:local, env, Map.delete(map, key)}}
   end
 
+
+  # Handle calls for SSM parameter store
   def handle_call({:push, key, value}, _from, {:ssm, env, map}) do
     full_key(env, key)
     |> ExAws.SSM.put_parameter(:secure_string, value, overwrite: true)
@@ -56,8 +55,20 @@ defmodule SecretConfig.Cache.Server do
     {:reply, key, {:ssm, env, Map.put(map, full_key(env, key), value)}}
   end
 
-  def handle_call({:push, key, value}, _from, {:local, env, map}) do
-    {:reply, key, {:local, env, Map.put(map, key, value)}}
+  def handle_call({:fetch, key, default}, _from, {:ssm, env, map}) do
+    {:reply, Map.get(map, key, default), {:ssm, env, map}}
+  end
+
+  def handle_call({:key?, key}, _from, {:ssm, env, map}) do
+    {:reply, Map.has_key?(map, key), {:ssm, env, map}}
+  end
+
+  def handle_call({:delete, key}, _from, {:ssm, env, map}) do
+    full_key(env, key)
+    |> ExAws.SSM.delete_parameter()
+    |> ExAws.request!()
+
+    {:reply, key, {:ssm, env, Map.delete(map, full_key(env, key))}}
   end
 
   defp init_state(env) do
@@ -196,7 +207,7 @@ defmodule SecretConfig.Cache.Server do
   end
 
   defp add_to_path_map({key, inner_map = %{}}, {prefix, path_map}) do
-    path_map = pathize_map(inner_map, key, path_map)
+    path_map = pathize_map(inner_map, prefix <> "/" <> key, path_map)
     {prefix, path_map}
   end
 
@@ -214,5 +225,4 @@ defmodule SecretConfig.Cache.Server do
     |> YamlElixir.read_from_string!()
     |> pathize_map("", %{})
   end
-
 end
