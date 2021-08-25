@@ -9,6 +9,9 @@ defmodule SecretConfig.Cache.Server do
 
   def init(_opts) do
     env = Application.get_env(:secret_config, :env)
+    IO.inspect "++++++++++++++++++"
+    IO.inspect env
+    IO.inspect "++++++++++++++++++"
     if env == nil do
       {:ok, %{}}
     else
