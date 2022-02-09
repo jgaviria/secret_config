@@ -1,6 +1,6 @@
 # SecretConfig
 
-Upon starting your app SecretConfig will read all the parameters under the configured path and will load them into memory. The reasoning behind this is to limit the amount of API calls to the ssm parameter store but rather doing them against a local GenServer. Actions like push or delete will first update aws ssm and then immediately update the GenServer state. 
+Upon starting your app SecretConfig will read all the parameters under the configured path and will load them into memory. The reasoning behind this is to limit the amount of API calls to the ssm parameter store by rather doing them against a local GenServer. Actions like push or delete will first update aws ssm and then immediately update the GenServer state. 
 
 ## Status
 Early prototype code, not for production use.
