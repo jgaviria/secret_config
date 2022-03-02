@@ -110,21 +110,14 @@ defmodule SecretConfig.Cache.Server do
   end
 
   def fetch_local_imports(map, import_key, parent_key) do
-    import_prefix = String.split(import_key, "/", trim: true)
-                    |> Enum.at(1)
-    parent_prefix = String.split(parent_key, "/", trim: true)
-                    |> Enum.at(1)
-
     reduced_map =
       Enum.reduce(
         map,
         %{},
         fn {key, value}, acc ->
           if Regex.match?(~r/#{import_key}/, key) do
-            str = String.split(key, "/#{import_prefix}", trim: true)
-            [_head | tail] = str
-            pathize_key = Enum.join(tail, "/")
-            modified_key = "/#{Mix.env}/#{parent_prefix}#{pathize_key}"
+            str = String.split(key, import_key, trim: true)
+            modified_key = String.replace(parent_key, "__import__", "#{str}")
             Map.put(acc, modified_key, value)
           else
             acc
