@@ -75,6 +75,11 @@ defmodule SecretConfigTest do
       assert "global_iv" == SecretConfig.fetch!("symmetric_encryption/iv")
       assert "global_key" == SecretConfig.fetch!("symmetric_encryption/key")
       assert "override_1" == SecretConfig.fetch!("symmetric_encryption/version")
+
+      # imports from base
+      assert "override_nested_host" == SecretConfig.fetch!("database/old/host")
+      assert "override_host" == SecretConfig.fetch!("database/host")
+      assert "base_user_1" == SecretConfig.fetch!("database/username")
     end
 
     test "pulls nested imports respecting overrides" do
