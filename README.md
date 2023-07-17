@@ -10,7 +10,7 @@ Add to your list of depencies in `mix.exs`:
 ~~~elixir
 def deps do
   [
-    {:secret_config, "~> 0.13.0"}
+    {:secret_config, "~> 0.14.0"}
   ]
 end
 ~~~
