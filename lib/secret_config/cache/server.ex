@@ -74,16 +74,24 @@ defmodule SecretConfig.Cache.Server do
   defp init_state(env) do
     cond do
       yaml_str = Application.get_env(:secret_config, :yaml_str) ->
-        {:local, env, yaml_str_to_map(yaml_str)}
+        {
+          :local,
+          env,
+          yaml_str_to_map(yaml_str)
+          |> StringInterpolator.interpolate_env()
+        }
+
       file = Application.get_env(:secret_config, :file) ->
         yaml_str = File.read!(file)
         local_map = yaml_str_to_map(yaml_str)
                     |> apply_local_imports
+                    |> StringInterpolator.interpolate_env()
 
         {:local, env, local_map}
       true ->
         ssm_map = ssm_parameter_map(%{}, nil, true, env)
                   |> apply_imports(env)
+                  |> StringInterpolator.interpolate_env()
 
         {:ssm, env, ssm_map}
     end
