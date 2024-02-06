@@ -62,6 +62,17 @@ defmodule SecretConfig.Cache.Server do
     {:reply, Map.get(map, Util.full_key(env, key), default), {:local, env, map}}
   end
 
+  def handle_call({:fetch!, key, _default}, _from, {:local, env, map} = state) do
+    full_key = Util.full_key(env, key)
+
+    case Map.fetch(map, full_key) do
+      {:ok, value} ->
+        {:reply, value, state}
+      :error ->
+        {:reply, {:not_exist, full_key}, state}
+    end
+  end
+
   def handle_call({:key?, key}, _from, {:local, env, map}) do
     {:reply, Map.has_key?(map, Util.full_key(env, key)), {:local, env, map}}
   end
@@ -81,6 +92,17 @@ defmodule SecretConfig.Cache.Server do
 
   def handle_call({:fetch, key, default}, _from, {:ssm, env, map}) do
     {:reply, Map.get(map, key, default), {:ssm, env, map}}
+  end
+
+  def handle_call({:fetch!, key, _default}, _from, {:ssm, env, map} = state) do
+    full_key = Util.full_key(env, key)
+
+    case Map.fetch(map, full_key) do
+      {:ok, value} ->
+        {:reply, value, state}
+      :error ->
+        {:reply, {:not_exist, full_key}, state}
+    end
   end
 
   def handle_call({:key?, key}, _from, {:ssm, env, map}) do
