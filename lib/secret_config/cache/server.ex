@@ -35,9 +35,7 @@ defmodule SecretConfig.Cache.Server do
     end
   end
 
-  @doc """
-  Handles `:set_env` cast to update the environment of the GenServer state.
-  """
+  # Handles :set_env cast to update the environment of the GenServer state.
   @spec handle_cast({:set_env, String.t()}, {atom(), String.t(), map()}) :: {:noreply, any()}
   def handle_cast({:set_env, env}, {file_or_ssm, _env, map}) do
     {:noreply, {file_or_ssm, env, map}}
@@ -48,17 +46,15 @@ defmodule SecretConfig.Cache.Server do
     {:noreply, Config.Loader.init_state(env)}
   end
 
+  # Handles :refresh cast to update the environment to the latest state
   @spec handle_cast(:refresh, {atom(), String.t(), map()}) :: {:noreply, any()}
   def handle_cast({:refresh}, {_file_or_ssm, env, _map}) do
     {:noreply, Config.Loader.init_state(env)}
   end
 
-  @doc """
-  Handles synchronous calls for manipulating configuration values locally.
-  """
-  @spec handle_call({atom(), String.t(), any()}, GenServer.from(), {atom(), String.t(), map()}) :: {:reply, any(), any()}
+  # Handles synchronous calls for manipulating configuration values locally (both test and dev)
   def handle_call({:push, key, value}, _from, {:local, env, map}) do
-    {:reply, key, {:local, env, Map.put(map, Util.full_key(env, key), value)}}
+    {:reply, {:added, Util.full_key(env, key)}, {:local, env, Map.put(map, Util.full_key(env, key), value)}}
   end
 
   def handle_call({:fetch, key, default}, _from, {:local, env, map}) do
@@ -66,13 +62,11 @@ defmodule SecretConfig.Cache.Server do
   end
 
   def handle_call({:fetch!, key, _default}, _from, {:local, env, map} = state) do
-    full_key = Util.full_key(env, key)
-
-    case Map.fetch(map, full_key) do
+    case Map.fetch(map, Util.full_key(env, key)) do
       {:ok, value} ->
         {:reply, value, state}
       :error ->
-        {:reply, {:not_exist, full_key}, state}
+        {:reply, {:not_exist, key}, state}
     end
   end
 
@@ -80,12 +74,16 @@ defmodule SecretConfig.Cache.Server do
     {:reply, Map.has_key?(map, Util.full_key(env, key)), {:local, env, map}}
   end
 
-  def handle_call({:delete, key}, _from, {:local, env, map}) do
-    {:reply, key, {:local, env, Map.delete(map, key)}}
+  def handle_call({:delete, key}, _from, {:local, env, map} = state) do
+    if Map.has_key?(map, Util.full_key(env, key)) do
+      {:reply, {:deleted, key}, {:local, env, Map.delete(map, Util.full_key(env, key))}}
+    else
+      {:reply, {:not_exist, key}, state}
+    end
   end
 
   # Handles synchronous calls for manipulating configuration values via SSM parameter store.
-  @spec handle_call({:push, binary, binary}, GenServer.from(), any()) :: {:reply, ExAws.Operation.JSON.t(), any()}
+
   def handle_call({:push, key, value}, _from, {:ssm, env, _map} = state) do
     full_key = Util.full_key(env, key)
 
