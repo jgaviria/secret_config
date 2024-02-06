@@ -29,7 +29,7 @@ defmodule SecretConfig do
   def fetch!(key) do
     case GenServer.call(SecretConfig.Cache.Server, {:fetch!, key, :not_exist}) do
       {:not_exist, full_key} ->
-      raise "SecretConfig key does not exist: #{inspect(full_key)}"
+        raise "SecretConfig key does not exist: #{inspect(full_key)}"
       value ->
         value
     end

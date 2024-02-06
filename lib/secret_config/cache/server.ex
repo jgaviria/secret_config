@@ -26,10 +26,13 @@ defmodule SecretConfig.Cache.Server do
   """
   @spec init(nil | String.t()) :: {:ok, any()}
   def init(env) do
-    effective_env = env || Application.get_env(:secret_config, :env) || :default
-    state = Config.Loader.init_state(effective_env)
-
-    {:ok, state}
+    env = env || Application.get_env(:secret_config, :env)
+    if env == nil do
+      {:ok, %{}}
+    else
+      state = Config.Loader.init_state(env)
+      {:ok, state}
+    end
   end
 
   @doc """
@@ -82,12 +85,19 @@ defmodule SecretConfig.Cache.Server do
   end
 
   # Handles synchronous calls for manipulating configuration values via SSM parameter store.
-  def handle_call({:push, key, value}, _from, {:ssm, env, map}) do
-    Util.full_key(env, key)
-    |> ExAws.SSM.put_parameter(:secure_string, value, overwrite: true)
-    |> ExAws.request!()
+  @spec handle_call({:push, binary, binary}, GenServer.from(), any()) :: {:reply, ExAws.Operation.JSON.t(), any()}
+  def handle_call({:push, key, value}, _from, {:ssm, env, _map} = state) do
+    full_key = Util.full_key(env, key)
 
-    {:reply, key, {:ssm, env, Map.put(map, Util.full_key(env, key), value)}}
+    case ExAws.SSM.put_parameter(full_key, :secure_string, value, overwrite: true)
+         |> ExAws.request() do
+      {:ok, _response} ->
+        {:reply, {:added, full_key}, state}
+
+      {:error, msg} ->
+        {:reply, {:error, msg}, state}
+
+    end
   end
 
   def handle_call({:fetch, key, default}, _from, {:ssm, env, map}) do
@@ -109,12 +119,20 @@ defmodule SecretConfig.Cache.Server do
     {:reply, Map.has_key?(map, key), {:ssm, env, map}}
   end
 
-  def handle_call({:delete, key}, _from, {:ssm, env, map}) do
-    Util.full_key(env, key)
-    |> ExAws.SSM.delete_parameter()
-    |> ExAws.request!()
+  def handle_call({:delete, key}, _from, {:ssm, env, _map} = state) do
+    full_key = Util.full_key(env, key)
 
-    {:reply, key, {:ssm, env, Map.delete(map, Util.full_key(env, key))}}
+    case ExAws.SSM.get_parameter(full_key, with_decryption: true)
+         |> ExAws.request() do
+      {:ok, _response} ->
+        ExAws.SSM.delete_parameter(full_key)
+        |> ExAws.request!()
+        {:reply, {:deleted, full_key}, state}
+
+      {:error, _response} ->
+        {:reply, {:not_exist, full_key}, state}
+
+    end
   end
 
 end
