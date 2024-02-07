@@ -103,13 +103,11 @@ defmodule SecretConfig.Cache.Server do
   end
 
   def handle_call({:fetch!, key, _default}, _from, {:ssm, env, map} = state) do
-    full_key = Util.full_key(env, key)
-
-    case Map.fetch(map, full_key) do
+    case Map.fetch(map, key) do
       {:ok, value} ->
         {:reply, value, state}
       :error ->
-        {:reply, {:not_exist, full_key}, state}
+        {:reply, {:not_exist, Util.full_key(env, key)}, state}
     end
   end
 
