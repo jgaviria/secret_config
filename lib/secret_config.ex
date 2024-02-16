@@ -68,3 +68,4 @@ defmodule SecretConfig do
     GenServer.cast(SecretConfig.Cache.Server, {:refresh})
   end
 end
+# test github workflow
