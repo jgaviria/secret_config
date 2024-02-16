@@ -17,7 +17,7 @@ defmodule SecretConfig do
   @doc """
   Gets parameter from GenServer (returns default value if present)
   """
-  @spec fetch(key :: binary, default :: binary | nil) :: ExAws.Operation.JSON.t()
+  @spec fetch(key :: binary, default :: binary | nil) :: {:not_exist, binary} | binary
   def fetch(key, default) do
     GenServer.call(SecretConfig.Cache.Server, {:fetch, key, default})
   end
@@ -25,11 +25,13 @@ defmodule SecretConfig do
   @doc """
   Gets parameter from GenServer (raise error if the value is not present)
   """
-  @spec fetch!(key :: binary) :: ExAws.Operation.JSON.t()
+  @spec fetch!(key :: String.t()) :: {:ok, any()} | {:not_exist, String.t()}
   def fetch!(key) do
-    case GenServer.call(SecretConfig.Cache.Server, {:fetch, key, :not_exist}) do
-      :not_exist -> raise "SecretConfig key does not exist: #{inspect(key)}"
-      val -> val
+    case GenServer.call(SecretConfig.Cache.Server, {:fetch!, key, :not_exist}) do
+      {:not_exist, full_key} ->
+        raise "SecretConfig key does not exist: #{inspect(full_key)}"
+      value ->
+        value
     end
   end
 
