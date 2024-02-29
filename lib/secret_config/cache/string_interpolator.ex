@@ -49,6 +49,5 @@ defmodule StringInterpolator do
   end
 
   @doc false
-  @spec interpolate_string(value :: any()) :: any()
   defp interpolate_string(value), do: value
 end

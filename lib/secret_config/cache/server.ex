@@ -27,6 +27,7 @@ defmodule SecretConfig.Cache.Server do
   @spec init(nil | String.t()) :: {:ok, any()}
   def init(env) do
     env = env || Application.get_env(:secret_config, :env)
+
     if env == nil do
       {:ok, %{}}
     else
@@ -36,25 +37,23 @@ defmodule SecretConfig.Cache.Server do
   end
 
   # Handles :set_env cast to update the environment of the GenServer state.
-  @spec handle_cast({:set_env, String.t()}, {atom(), String.t(), map()}) :: {:noreply, any()}
   def handle_cast({:set_env, env}, {file_or_ssm, _env, map}) do
     {:noreply, {file_or_ssm, env, map}}
   end
 
-  @spec handle_cast({:set_env, String.t()}, map()) :: {:noreply, any()}
   def handle_cast({:set_env, env}, %{}) do
     {:noreply, Config.Loader.init_state(env)}
   end
 
   # Handles :refresh cast to update the environment to the latest state
-  @spec handle_cast(:refresh, {atom(), String.t(), map()}) :: {:noreply, any()}
   def handle_cast({:refresh}, {_file_or_ssm, env, _map}) do
     {:noreply, Config.Loader.init_state(env)}
   end
 
   # Handles synchronous calls for manipulating configuration values locally (both test and dev)
   def handle_call({:push, key, value}, _from, {:local, env, map}) do
-    {:reply, {:added, Util.full_key(env, key)}, {:local, env, Map.put(map, Util.full_key(env, key), value)}}
+    {:reply, {:added, Util.full_key(env, key)},
+     {:local, env, Map.put(map, Util.full_key(env, key), value)}}
   end
 
   def handle_call({:fetch, key, default}, _from, {:local, env, map}) do
@@ -65,6 +64,7 @@ defmodule SecretConfig.Cache.Server do
     case Map.fetch(map, Util.full_key(env, key)) do
       {:ok, value} ->
         {:reply, value, state}
+
       :error ->
         {:reply, {:not_exist, key}, state}
     end
@@ -94,7 +94,6 @@ defmodule SecretConfig.Cache.Server do
 
       {:error, msg} ->
         {:reply, {:error, msg}, state}
-
     end
   end
 
@@ -106,6 +105,7 @@ defmodule SecretConfig.Cache.Server do
     case Map.fetch(map, key) do
       {:ok, value} ->
         {:reply, value, state}
+
       :error ->
         {:reply, {:not_exist, Util.full_key(env, key)}, state}
     end
@@ -123,12 +123,11 @@ defmodule SecretConfig.Cache.Server do
       {:ok, _response} ->
         ExAws.SSM.delete_parameter(full_key)
         |> ExAws.request!()
+
         {:reply, {:deleted, full_key}, state}
 
       {:error, _response} ->
         {:reply, {:not_exist, full_key}, state}
-
     end
   end
-
 end
